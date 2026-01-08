@@ -325,7 +325,7 @@ In those cases, keep AI advisory, not authoritative.
 
 ### Supervisor
 
-This agent is the human overseer who provides high-level intent, reviews AI-generated changes, and ensures alignment with business goals and policies. It acts as the final authority on decisions and maintains accountability for the overall system.
+This agent is the human overseer and prime-mover who provides high-level intent, reviews AI-generated changes, and ensures alignment with business goals and policies. It acts as the final authority on decisions and maintains accountability for the overall system.
 
 ### Planner
 
