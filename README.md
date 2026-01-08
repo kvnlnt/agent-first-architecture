@@ -8,7 +8,7 @@
 
 The fundamental actors and units in an AI‑first architecture are:
 
-1. Supervisor: The fundamental actor is the human supervisor who provides high-level intent and oversight
+1. Supervisor: The fundamental actor is the human supervisor who the prime-mover who provides high-level intent and oversight
 1. Planning Agent: The fundamental entry point is the planning agent that translates intent into actionable tasks
 1. Task Agents: The fundamental change agent is highly specialized task agents that can write and modify code
 1. Codebase: The fundamental unit of behavior is the codebase that encapsulates all functionality
@@ -16,7 +16,7 @@ The fundamental actors and units in an AI‑first architecture are:
 1. Module: The fundamental unit of organization is a module (file)
 1. Feature: The fundamental unit of change is a feature with a version
 1. Workflow: The fundamental unit of delivery is a workflow (collection of features and orchestrations)
-1. Orchestration: The fundamental unit of automation is an orchestration (collection of workflows)
+1. Goal: The fundamental unit of achievement is a goal (collection of workflows)
 
 ### Core Philosophy
 
@@ -62,12 +62,19 @@ Boundaries are enforced by **directory structure and tooling**, not conventions 
 
 ```
 /
+├── adapters/           # IO boundaries only
+│   ├── http/
+│   ├── cli/
+│   └── queue/
+|
 ├── core/               # Human‑owned, AI‑read‑only
 |   ├── agents/         # Agent definitions
 |   ├── config/         # Global configuration
 │   ├── policy/         # Hard rules, invariants, constraints
 │   ├── types/          # Global primitive types
 │   └── runtime/        # Bootstrapping, wiring, lifecycle
+|
+├── docs/               # Human context & decisions
 │
 ├── features/           # AI‑modifiable change cells
 │   ├── user.create.v1/
@@ -83,17 +90,12 @@ Boundaries are enforced by **directory structure and tooling**, not conventions 
 │   └── order.cancel.v1/
 │       └── ...
 │
-├── adapters/           # IO boundaries only
-│   ├── http/
-│   ├── cli/
-│   └── queue/
-│
 ├── generated/          # Machine‑generated artifacts
 │   └── (never edited by humans)
 │
 ├── scripts/            # Maintenance + orchestration
-│
-└── docs/               # Human context & decisions
+|
+└── tasks/              # Tasks genereated by planning agent and executed by task agents
 ```
 
 ---
@@ -312,6 +314,12 @@ Machines steward consistency.
 In those cases, keep AI advisory, not authoritative.
 
 ---
+
+## CRUD first architecture
+
+A CRUD-first architecture is one that establishes a base “postback” CRUD (Create, Read, Update, Delete) interface for all data models before layering on additional business logic or interactive features. This ensures that fundamental data operations are consistent, well-defined, and fully tested across the application, providing a stable foundation for development. Each data model should have a corresponding CRUD interface implemented early in the development process, ideally with 100% test coverage, to facilitate maintainability, scalability, and future integration with other systems.
+
+Once a robust CRUD layer is in place, SPA-like features can be built selectively on top of it. These features leverage the existing CRUD operations, forms, validation, data fetching, and state management to deliver richer, interactive user experiences without duplicating effort or introducing inconsistencies. Because they enhance the experience in a surgical, in-context way rather than replacing the underlying architecture, these lightweight, targeted enhancements can be thought of as “Micro-SPA Augments”—small, reusable interactive modules that bring SPA behavior to specific parts of an otherwise traditional MPA.
 
 ## Agents
 
