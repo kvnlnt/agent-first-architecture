@@ -18,6 +18,12 @@ The fundamental actors and units in an AI‑first architecture are:
 1. Workflow: The fundamental unit of delivery is a workflow (collection of features and orchestrations)
 1. Goal: The fundamental unit of achievement is a goal (collection of workflows)
 
+## CRUD first architecture
+
+A CRUD-first architecture is one that establishes a base “postback” CRUD (Create, Read, Update, Delete) interface for all data models before layering on additional business logic or interactive features. This ensures that fundamental data operations are consistent, well-defined, and fully tested across the application, providing a stable foundation for development. Each data model should have a corresponding CRUD interface implemented early in the development process, ideally with 100% test coverage, to facilitate maintainability, scalability, and future integration with other systems.
+
+Once a robust CRUD layer is in place, SPA-like features can be built selectively on top of it. These features leverage the existing CRUD operations, forms, validation, data fetching, and state management to deliver richer, interactive user experiences without duplicating effort or introducing inconsistencies. Because they enhance the experience in a surgical, in-context way rather than replacing the underlying architecture, these lightweight, targeted enhancements can be thought of as “Micro-SPA Augments”—small, reusable interactive modules that bring SPA behavior to specific parts of an otherwise traditional MPA.
+
 ### Core Philosophy
 
 ### 1. Authority Is Declarative, Not Emergent
@@ -314,12 +320,6 @@ Machines steward consistency.
 In those cases, keep AI advisory, not authoritative.
 
 ---
-
-## CRUD first architecture
-
-A CRUD-first architecture is one that establishes a base “postback” CRUD (Create, Read, Update, Delete) interface for all data models before layering on additional business logic or interactive features. This ensures that fundamental data operations are consistent, well-defined, and fully tested across the application, providing a stable foundation for development. Each data model should have a corresponding CRUD interface implemented early in the development process, ideally with 100% test coverage, to facilitate maintainability, scalability, and future integration with other systems.
-
-Once a robust CRUD layer is in place, SPA-like features can be built selectively on top of it. These features leverage the existing CRUD operations, forms, validation, data fetching, and state management to deliver richer, interactive user experiences without duplicating effort or introducing inconsistencies. Because they enhance the experience in a surgical, in-context way rather than replacing the underlying architecture, these lightweight, targeted enhancements can be thought of as “Micro-SPA Augments”—small, reusable interactive modules that bring SPA behavior to specific parts of an otherwise traditional MPA.
 
 ## Agents
 
