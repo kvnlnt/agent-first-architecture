@@ -8,12 +8,13 @@
 
 The fundamental actors and units in an AI‑first architecture are:
 
-1. Supervisor: The fundamental actor is the human supervisor who the prime-mover who provides high-level intent and oversight
-1. Planning Agent: The fundamental entry point is the planning agent that translates intent into actionable tasks
-1. Task Agents: The fundamental change agent is highly specialized task agents that can write and modify code
-1. Codebase: The fundamental unit of behavior is the codebase that encapsulates all functionality
-1. Function: The fundamental unit of behavior is a function
-1. Module: The fundamental unit of organization is a module (file)
+1. Supervisor: The fundamental actor is the sytem is a human supervisor who is the prime-mover who provides high-level intent and oversight
+1. Planning Agent: The planning agent translates Supervisor intent into actionable tasks
+1. Orchestrator Agent: The orchestrator agent coordinates the execution of tasks by task agents
+1. Task Agents: highly specialized task agents that use task docuemnts written by teh Planning agent to write and modify code
+1. Codebase: The fundamental structure of the system is the codebase itself, organized to facilitate AI understanding and modification
+1. Function: The fundamental unit of behavior. They should be small, pure, and side-effect free with an arity of <3. Arguments should always be an explicit input object so that future inputs can be added without changing the signature.
+1. Module: The fundamental unit of organization is a module (file). Functions are grouped into modules based on cohesive functionality. High cohesion, low coupling.
 1. Feature: The fundamental unit of change is a feature with a version
 1. Workflow: The fundamental unit of delivery is a workflow (collection of features and orchestrations)
 1. Goal: The fundamental unit of achievement is a goal (collection of workflows)
@@ -22,7 +23,7 @@ The fundamental actors and units in an AI‑first architecture are:
 
 A CRUD-first architecture is one that establishes a base “postback” CRUD (Create, Read, Update, Delete) interface for all data models before layering on additional business logic or interactive features. This ensures that fundamental data operations are consistent, well-defined, and fully tested across the application, providing a stable foundation for development. Each data model should have a corresponding CRUD interface implemented early in the development process, ideally with 100% test coverage, to facilitate maintainability, scalability, and future integration with other systems.
 
-Once a robust CRUD layer is in place, SPA-like features can be built selectively on top of it. These features leverage the existing CRUD operations, forms, validation, data fetching, and state management to deliver richer, interactive user experiences without duplicating effort or introducing inconsistencies. Because they enhance the experience in a surgical, in-context way rather than replacing the underlying architecture, these lightweight, targeted enhancements can be thought of as “Micro-SPA Augments”—small, reusable interactive modules that bring SPA behavior to specific parts of an otherwise traditional MPA.
+Once a robust CRUD layer is in place, SPA-like features can be built selectively on top of it as a form of "progressive enhancement" for UX. These features leverage the existing CRUD operations, forms, validation, data fetching, and state management to deliver richer, interactive user experiences without duplicating effort or introducing inconsistencies. Because they enhance the experience in a surgical, in-context way rather than replacing the underlying architecture, these lightweight, targeted enhancements can be thought of as “Micro-SPA Augments”—small, reusable interactive modules that bring SPA behavior to specific parts of an otherwise traditional MPA.
 
 ### Core Philosophy
 
@@ -84,7 +85,7 @@ Boundaries are enforced by **directory structure and tooling**, not conventions 
 │
 ├── features/           # AI‑modifiable change cells
 │   ├── user.create.v1/
-│   │   ├── contract.yaml
+│   │   ├── contract.ts
 │   │   ├── handler.ts
 │   │   ├── validate.ts
 │   │   ├── tests.ts
@@ -102,6 +103,9 @@ Boundaries are enforced by **directory structure and tooling**, not conventions 
 ├── scripts/            # Maintenance + orchestration
 |
 └── tasks/              # Tasks genereated by planning agent and executed by task agents
+    └── todo/           # To do tasks
+    └── issues/         # Reported issues
+    └── done/           # Completed tasks
 ```
 
 ---
@@ -127,28 +131,29 @@ Each feature directory is a **closed change cell**.
 
 ```
 user.create.v1/
-├── contract.yaml
+├── contract.ts
 ├── handler.ts
 ├── validate.ts
 ├── tests.ts
 └── README.md
 ```
 
-#### `contract.yaml`
+#### `contract.ts`
 
-```yaml
-name: user.create
-version: 1
-inputs:
-  email: string
-  password: string
-rules:
-  - password.length >= 12
-side_effects:
-  - create_user_record
-  - send_welcome_email
-outputs:
-  user_id: uuid
+```typescript
+export const contract: Contract = {
+  name: "user.create",
+  version: 1,
+  inputs: {
+    email: "string",
+    password: "string",
+  },
+  rules: [{ rule: "password.length >= 12" }],
+  side_effects: ["create_user_record", "send_welcome_email"],
+  outputs: {
+    user_id: "uuid",
+  },
+};
 ```
 
 > This file is **authoritative**.
@@ -222,7 +227,7 @@ AI failures are _contained_.
 
 ---
 
-### Adapters (Edges Only)
+### `/adapters` (Edges Only)
 
 Adapters translate the outside world into feature calls.
 
@@ -274,6 +279,17 @@ Benefits:
 - Framework magic
 - Reflection
 - Runtime behavior not declared in contracts
+- Cross‑feature imports
+- Circular dependencies
+- Hidden state
+- Classes
+- Inheritance
+- Aspect‑oriented programming
+- Monolithic functions (>50 LOC)
+- High‑arity functions (>3 args)
+- Large feature cells (>300 LOC)
+- Complex conditionals based on environment, flags, or context
+- Runtime configuration changes that alter behavior
 
 These create **non‑local reasoning requirements**, which AI handles poorly.
 
@@ -281,10 +297,18 @@ These create **non‑local reasoning requirements**, which AI handles poorly.
 
 ### Change Workflow (AI‑First)
 
-1. Contract change proposed
-2. AI regenerates handlers, validators, tests
-3. CI verifies invariants
-4. Humans review **intent**, not mechanics
+1. Human Supervisor makes a request to the Planning Agent
+2. Planning Agent breaks down the request into discrete tasks and stores each in the `/tasks/todo/` directory with the following naming convention: `[order_of_execution]_[task_agent]_[description]_.md`
+3. Human Supervisor reviews the tasks in the `/tasks/todo/` directory
+4. Human Supervisor requests the Orchestrator Agent to execute the tasks in the `/tasks/todo/` directory in order and to report back on completion and any issues encountered. The Orchestrator Agent carries out each task via a task agent in order of execution. It haults execution if any task is moved to the `/tasks/issues/` directory for Human Supervisor review.
+5. Each Task Agent picks up its assigned task from the `/tasks/todo/` directory. All work performed by Task Agents is appended to the original task document in `/tasks/todo/` and moved to `/tasks/done/` upon completion. If issues are encountered, all work performed, issues, and proposed solutions are documented in the original task document, which is then moved to `/tasks/issues/` for Human Supervisor review.
+6. Upon completion of all tasks, the Orchestrator Agent generates a summary report of the changes made, tests executed, and any issues encountered during the process. This report is stored in the `/docs/` directory for future reference and auditing.
+7. Continuous Integration (CI) system runs automated tests and verifies that all contracts and invariants are upheld. If any tests fail or invariants are violated, the CI system generates a report and notifies the Human Supervisor for review.
+8. Human Supervisor reviews the changes, test results, and CI reports to ensure that the modifications align with the original intent and business goals. If everything is satisfactory, the changes are approved for deployment.
+9. If any issues were identified during the review, the Human Supervisor may request further modifications or clarifications, which would initiate a new cycle of task creation and execution as needed.
+10. Once approved, the changes are deployed to the production environment following established deployment procedures.
+11. Post-deployment, the system is monitored to ensure stability and performance, with any anomalies reported back to the Human Supervisor for further action.
+12. All task documents, reports, and related artifacts are archived in the `/docs/` directory for future reference and auditing purposes.
 
 AI proposes; humans decide.
 
@@ -331,19 +355,26 @@ This agent is the human overseer and prime-mover who provides high-level intent,
 
 This agent is responsible for defining the vision, strategy, and roadmap for a software product. It acts as the liaison between stakeholders and the development team, ensuring that the product meets customer needs and business objectives. Using deep market analytics and research, it prioritizes features, manages the product backlog, and communicates the product goals to the team.
 
-- logs all work to worklogs/product_manager.md
 - Defines product vision and strategy
 - Prioritizes product features and backlog
 - Collaborates with stakeholders to gather requirements
 - Communicates product goals to the development team
 - Monitors product performance and user feedback
 
+### Orchestrator
+
+This agent is responsible for coordinating and managing the execution of tasks by various specialized task agents. It ensures that tasks are completed in the correct order, dependencies are managed, and overall project timelines are adhered to. The Orchestrator acts as the central hub for task execution, monitoring progress, and handling any issues that arise during the process.
+
+- Coordinates task execution among specialized agents
+- Manages task dependencies and timelines
+- Monitors progress and reports status to the Supervisor
+- Handles issues and escalates when necessary
+- Ensures overall project coherence and alignment with goals
+
 ### Business Analyst
 
 This agent is responsible for analyzing business processes, identifying opportunities for improvement, and translating business requirements into technical specifications. It works closely with stakeholders to understand their needs and ensures that the development team has a clear understanding of the project goals.
 
-- logs all work to worklogs/business_analyst.md
-- Looks for opportunities to collect feedback within customer facing workflows
 - Analyzes business processes and workflows
 - Gathers and documents business requirements
 - Translates business needs into technical specifications
@@ -355,7 +386,6 @@ This agent is responsible for analyzing business processes, identifying opportun
 
 This agent is responsible for designing and overseeing the overall architecture of complex software systems. It ensures that the system components work together seamlessly, meet performance and scalability requirements, and align with business goals.
 
-- logs all work to worklogs/systems_architect.md
 - Is a proponent of Hex Architecture and Domain-Driven Design
 - Is a proponent of Monorepo and CI/CD best practices
 - Is a proponent of 12 Factor App methodology
@@ -378,7 +408,6 @@ This agent is responsible for designing and overseeing the overall architecture 
 
 This agent is responsible for building and maintaining the underlying platform that supports software applications. It focuses on creating a stable, scalable, and efficient environment for application deployment and operation.
 
-- logs all work to worklogs/platform_engineer.md
 - Designs and implements platform architecture
 - Manages cloud infrastructure and services
 - Automates deployment and scaling processes
@@ -390,7 +419,6 @@ This agent is responsible for building and maintaining the underlying platform t
 
 This agent is responsible for developing and maintaining the user interface and user experience of web applications. It focuses on creating responsive, accessible, and visually appealing designs that enhance user engagement.
 
-- logs all work to worklogs/frontend_engineer.md
 - Develops responsive web interfaces using modern frameworks
 - Ensures cross-browser compatibility and accessibility
 - Implements UI/UX designs and collaborates with designers
@@ -402,7 +430,6 @@ This agent is responsible for developing and maintaining the user interface and 
 
 This agent is responsible for developing and maintaining the server-side logic, databases, and APIs of web applications. It ensures that the backend systems are robust, scalable, and secure, supporting the needs of the frontend and overall application functionality.
 
-- logs all work to worklogs/backend_engineer.md
 - Develops server-side logic and APIs
 - Manages database design and optimization
 - Ensures application security and data integrity
@@ -414,7 +441,6 @@ This agent is responsible for developing and maintaining the server-side logic, 
 
 This agent is responsible for the design, implementation, maintenance, and optimization of database systems. It ensures data integrity, security, and availability while supporting the needs of applications and users.
 
-- logs all work to worklogs/database_administrator.md
 - Designs and implements database schemas
 - Monitors and optimizes database performance
 - Ensures data security and integrity
@@ -426,7 +452,6 @@ This agent is responsible for the design, implementation, maintenance, and optim
 
 This agent is responsible for managing the infrastructure, deployment, and operational aspects of software applications. It ensures that systems are reliable, scalable, and secure, while also optimizing performance and cost-efficiency.
 
-- logs all work to worklogs/devops_engineer.md
 - Manages cloud infrastructure and services
 - Implements CI/CD pipelines
 - Monitors system performance and reliability
@@ -438,7 +463,6 @@ This agent is responsible for managing the infrastructure, deployment, and opera
 
 This agent is responsible for ensuring the quality and reliability of software applications through systematic testing and validation. It designs and executes test plans, identifies defects, and collaborates with development teams to improve product quality.
 
-- logs all work to worklogs/qa_engineer.md
 - Designs and executes test plans
 - Identifies and documents defects
 - Collaborates with developers to resolve issues
