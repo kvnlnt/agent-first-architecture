@@ -8,22 +8,16 @@
 
 The fundamental actors and units in an AI‑first architecture are:
 
-1. Supervisor: The fundamental actor is the sytem is a human supervisor who is the prime-mover who provides high-level intent and oversight
-1. Planning Agent: The planning agent translates Supervisor intent into actionable tasks
-1. Orchestrator Agent: The orchestrator agent coordinates the execution of tasks by task agents
-1. Task Agents: highly specialized task agents that use task docuemnts written by teh Planning agent to write and modify code
-1. Codebase: The fundamental structure of the system is the codebase itself, organized to facilitate AI understanding and modification
-1. Function: The fundamental unit of behavior. They should be small, pure, and side-effect free with an arity of <3. Arguments should always be an explicit input object so that future inputs can be added without changing the signature.
-1. Module: The fundamental unit of organization is a module (file). Functions are grouped into modules based on cohesive functionality. High cohesion, low coupling.
-1. Feature: The fundamental unit of change is a feature with a version
-1. Workflow: The fundamental unit of delivery is a workflow (collection of features and orchestrations)
-1. Goal: The fundamental unit of achievement is a goal (collection of workflows)
-
-## CRUD first architecture
-
-A CRUD-first architecture is one that establishes a base “postback” CRUD (Create, Read, Update, Delete) interface for all data models before layering on additional business logic or interactive features. This ensures that fundamental data operations are consistent, well-defined, and fully tested across the application, providing a stable foundation for development. Each data model should have a corresponding CRUD interface implemented early in the development process, ideally with 100% test coverage, to facilitate maintainability, scalability, and future integration with other systems.
-
-Once a robust CRUD layer is in place, SPA-like features can be built selectively on top of it as a form of "progressive enhancement" for UX. These features leverage the existing CRUD operations, forms, validation, data fetching, and state management to deliver richer, interactive user experiences without duplicating effort or introducing inconsistencies. Because they enhance the experience in a surgical, in-context way rather than replacing the underlying architecture, these lightweight, targeted enhancements can be thought of as “Micro-SPA Augments”—small, reusable interactive modules that bring SPA behavior to specific parts of an otherwise traditional MPA.
+1. Supervisor: The fundamental actor in the system is a human supervisor who is the prime-mover who provides high-level intent and oversight
+2. Planner Agent: The planner agent translates Supervisor intent into actionable tasks
+3. Orchestrator Agent: The orchestrator agent coordinates the execution of tasks by task agents
+4. Task Agents: highly specialized task agents that use task documents written by the Planner Agent to write and modify code
+5. Codebase: The fundamental structure of the system is the codebase itself, organized to facilitate AI understanding and modification
+6. Function: The fundamental unit of behavior. They should be small, pure, and side-effect free. Arguments should always be an explicit input object so that future inputs can be added without changing the signature.
+7. Module: The fundamental unit of organization is a module (file). Functions are grouped into modules based on cohesive functionality. High cohesion, low coupling.
+8. Feature: The fundamental unit of change is a feature with a version
+9. Workflow: The fundamental unit of delivery is a workflow (collection of features and orchestrations)
+10. Goal: The fundamental unit of achievement is a goal (collection of workflows)
 
 ### Core Philosophy
 
@@ -118,7 +112,7 @@ Each feature directory is a **closed change cell**.
 
 | Constraint   | Requirement                |
 | ------------ | -------------------------- |
-| Size         | <300 LOC total             |
+| Size         | <1000 LOC total            |
 | Imports      | core/\* only               |
 | State        | Explicit inputs only       |
 | Side effects | Declared in contract       |
@@ -176,6 +170,17 @@ export const contract: Contract = {
 
 ---
 
+#### `tests.ts`
+
+- Asserts contract compliance, not implementation details
+- Tests inputs/outputs match contract declarations
+- Validates all declared rules are enforced
+- Confirms side effects are triggered (via stubs/mocks)
+- Local and deterministic—no external dependencies
+- Regenerated when contract changes
+
+---
+
 ### Versioned Behavior (No Conditionals)
 
 Instead of:
@@ -198,6 +203,24 @@ Benefits:
 - AI can diff versions mechanically
 - Safe backports and forward‑ports
 - Deletion is explicit and auditable
+
+---
+
+### When to Version
+
+Create a new version (`v2`, `v3`, etc.) when:
+
+- Changing inputs/outputs in `contract.ts`
+- Modifying declared rules
+- Adding/removing side effects
+- Altering the fundamental behavior of the feature
+
+Do NOT version for:
+
+- Bug fixes that don't change the contract
+- Performance optimizations
+- Internal refactoring within the handler
+- Code style or formatting changes
 
 ---
 
@@ -282,8 +305,6 @@ Benefits:
 - Cross‑feature imports
 - Circular dependencies
 - Hidden state
-- Classes
-- Inheritance
 - Aspect‑oriented programming
 - Monolithic functions (>50 LOC)
 - High‑arity functions (>3 args)
@@ -295,14 +316,152 @@ These create **non‑local reasoning requirements**, which AI handles poorly.
 
 ---
 
+### Fullstack Implementation Layers
+
+The AI-first architecture establishes two distinct implementation layers for fullstack web applications. This layered approach ensures that fundamental operations are stable, well-tested, and AI-manageable before adding complexity.
+
+---
+
+### Foundation Layer (CRUD-First)
+
+The Foundation Layer establishes a complete, testable interface for all data models before any interactive features are added. This layer is **fully generatable** from model specifications, making it ideal for AI implementation.
+
+#### Backend
+
+Each model generates a standard REST API:
+
+| Method | Endpoint           | Purpose                                            |
+| ------ | ------------------ | -------------------------------------------------- |
+| POST   | `/api/{model}`     | Create a new record                                |
+| GET    | `/api/{model}`     | List records (with pagination, filtering, sorting) |
+| GET    | `/api/{model}/:id` | Retrieve a specific record                         |
+| PUT    | `/api/{model}/:id` | Replace a record                                   |
+| PATCH  | `/api/{model}/:id` | Partially update a record                          |
+| DELETE | `/api/{model}/:id` | Delete a record                                    |
+
+Standard capabilities:
+
+- Authentication and authorization
+- Input validation and business rules
+- Audit logging
+- Error handling with appropriate HTTP status codes
+- Database interactions
+
+#### Frontend
+
+Each model generates resourceful routes:
+
+| Route                 | Purpose                                  |
+| --------------------- | ---------------------------------------- |
+| `/{model}`            | List view with search and create options |
+| `/{model}/new`        | Create form                              |
+| `/{model}/:id`        | Detail view with edit/delete options     |
+| `/{model}/:id/edit`   | Edit form                                |
+| `/{model}/:id/delete` | Delete confirmation                      |
+
+Standard capabilities:
+
+- Form components with validation
+- List components with pagination
+- State management
+- API integration
+
+#### Why Foundation First?
+
+- **100% test coverage** before adding complexity
+- **Consistent patterns** across all models
+- **AI-generatable** from model specifications
+- **Stable base** for enhancement features
+- **Rollback safety**—enhancements can be removed without breaking core functionality
+
+---
+
+### Enhancement Layer (Progressive)
+
+The Enhancement Layer builds **on top of** the Foundation Layer, adding richer interactions without replacing or duplicating core CRUD operations. These are surgical, in-context improvements—not a separate architecture.
+
+#### Backend Enhancements
+
+- Bulk operations (e.g., batch create/update/delete)
+- Complex queries (aggregations, joins, full-text search)
+- Rate limiting and advanced security
+- Caching strategies
+- Integration with analytics, notifications, third-party services
+
+#### Frontend Enhancements
+
+**Quick Access**
+
+- Keyboard shortcuts
+- Context menus
+- Command palettes
+
+**Inline Interactions**
+
+- Quick edit (inline editing, modals)
+- Drag-and-drop reordering
+- Real-time updates (WebSocket, SSE)
+
+**Cross-Model Features**
+
+- Linked/nested resources
+- Dashboards spanning multiple models
+- Bulk actions across models
+- Cross-model validation
+- Unified reporting
+
+**Context-Aware Behavior**
+
+- Role-based UI adaptation
+- Event-driven notifications
+- Multi-step workflow guidance
+
+**Advanced Components**
+
+- Data visualizations
+- Rich editors
+- Third-party integrations
+
+#### Enhancement Rules
+
+| Constraint  | Requirement                                                  |
+| ----------- | ------------------------------------------------------------ |
+| Dependency  | Must use Foundation Layer APIs, not bypass them              |
+| Isolation   | Enhancement failures must not break Foundation functionality |
+| Testability | Enhancements have separate test suites                       |
+| Degradation | System remains functional if enhancements are disabled       |
+
+---
+
+### Layer Relationship
+
+```
+┌─────────────────────────────────────────────────────┐
+│           Enhancement Layer (Progressive)           │
+│  Dashboards, Bulk Ops, Real-time, Cross-model UX   │
+├─────────────────────────────────────────────────────┤
+│            Foundation Layer (CRUD-First)            │
+│   REST APIs, Resourceful Routes, Forms, Lists      │
+├─────────────────────────────────────────────────────┤
+│                   Data Models                        │
+│            Schemas, Contracts, Types                │
+└─────────────────────────────────────────────────────┘
+```
+
+**Key insight**: The Foundation Layer is the **source of truth** for data operations. The Enhancement Layer consumes it—never circumvents it.
+
+---
+
+---
+
 ### Change Workflow (AI‑First)
 
-1. Human Supervisor makes a request to the Planning Agent
-2. Planning Agent breaks down the request into discrete tasks and stores each in the `/tasks/todo/` directory with the following naming convention: `[order_of_execution]_[task_agent]_[description]_.md`
+1. Human Supervisor makes a request to the Planner Agent
+2. Planner Agent breaks down the request into discrete tasks and stores each in the `/tasks/todo/` directory with the following naming convention: `[priority]_[task_agent]_[short_description].md` (e.g., `001_backend-engineer_implement-user-create-handler.md`). Task dependencies can be specified in YAML frontmatter within each task file. All features should be implemented in degrees of complexity, starting with a minimal viable version and iterating towards the full specification. The planner agent should ensure that each task is small enough to be completed by a single task agent in one iteration and report back if the task is too large or complex.
 3. Human Supervisor reviews the tasks in the `/tasks/todo/` directory
-4. Human Supervisor requests the Orchestrator Agent to execute the tasks in the `/tasks/todo/` directory in order and to report back on completion and any issues encountered. The Orchestrator Agent carries out each task via a task agent in order of execution. It haults execution if any task is moved to the `/tasks/issues/` directory for Human Supervisor review.
+4. Human Supervisor requests the Orchestrator Agent to execute the tasks in the `/tasks/todo/` directory in order and to report back on completion and any issues encountered. The Orchestrator Agent carries out each task via a task agent in order of priority. It halts execution if any task is moved to the `/tasks/issues/` directory for Human Supervisor review.
 5. Each Task Agent picks up its assigned task from the `/tasks/todo/` directory. All work performed by Task Agents is appended to the original task document in `/tasks/todo/` and moved to `/tasks/done/` upon completion. If issues are encountered, all work performed, issues, and proposed solutions are documented in the original task document, which is then moved to `/tasks/issues/` for Human Supervisor review.
-6. Upon completion of all tasks, the Orchestrator Agent generates a summary report of the changes made, tests executed, and any issues encountered during the process. This report is stored in the `/docs/` directory for future reference and auditing.
+6. Upon completion of all tasks, the Orchestrator Agent generates a summary report of the changes made, tests executed, and any issues encountered during the process. This report is stored as `/docs/reports/[YYYY-MM-DD]_[workflow-name].md` for future reference and auditing.
 7. Continuous Integration (CI) system runs automated tests and verifies that all contracts and invariants are upheld. If any tests fail or invariants are violated, the CI system generates a report and notifies the Human Supervisor for review.
 8. Human Supervisor reviews the changes, test results, and CI reports to ensure that the modifications align with the original intent and business goals. If everything is satisfactory, the changes are approved for deployment.
 9. If any issues were identified during the review, the Human Supervisor may request further modifications or clarifications, which would initiate a new cycle of task creation and execution as needed.
@@ -311,6 +470,18 @@ These create **non‑local reasoning requirements**, which AI handles poorly.
 12. All task documents, reports, and related artifacts are archived in the `/docs/` directory for future reference and auditing purposes.
 
 AI proposes; humans decide.
+
+---
+
+### Regression Prevention
+
+The architecture ensures regressions are detected and prevented through:
+
+- **Immutable Versions**: Each feature version is immutable once deployed; behavior changes require new versions
+- **Contract Diffing**: CI compares `contract.ts` across versions to detect breaking changes
+- **Cross-Version Testing**: Tests from previous versions can be run against new versions to verify backward compatibility when required
+- **Local Test Isolation**: Each feature's tests are self-contained and deterministic, ensuring failures are traceable to specific features
+- **Invariant Enforcement**: CI validates that all contracts and policy invariants are upheld before deployment
 
 ---
 
@@ -351,9 +522,9 @@ In those cases, keep AI advisory, not authoritative.
 
 This agent is the human overseer and prime-mover who provides high-level intent, reviews AI-generated changes, and ensures alignment with business goals and policies. It acts as the final authority on decisions and maintains accountability for the overall system.
 
-### Planner
+### Planner Agent
 
-This agent is responsible for defining the vision, strategy, and roadmap for a software product. It acts as the liaison between stakeholders and the development team, ensuring that the product meets customer needs and business objectives. Using deep market analytics and research, it prioritizes features, manages the product backlog, and communicates the product goals to the team.
+This agent is responsible for translating Supervisor intent into actionable tasks. It defines the vision, strategy, and roadmap for a software product, acting as the liaison between stakeholders and the development team. Using deep market analytics and research, it prioritizes features, manages the product backlog, and communicates the product goals to the team.
 
 - Defines product vision and strategy
 - Prioritizes product features and backlog
